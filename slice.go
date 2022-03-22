@@ -5,7 +5,11 @@ func Cons[T any](x T, xs []T) []T {
 	return append(xs, x)
 }
 
-func Snoc[T any](xs []T) (T, []T) {
+func Snoc[T any](xs []T, x T) []T {
+	return Cons(x, xs)
+}
+
+func Uncons[T any](xs []T) (T, []T) {
 	if len(xs) > 0 {
 		return xs[0], xs[1:]
 	}
@@ -60,7 +64,7 @@ func Reduce[I, A any](fn func(A, I) A) func(acc A) func(xs []I) A {
 }
 
 func _Map[I, O any](fn func(I) O, xs []I) []O {
-	return Reduce(MapT[I, O, []O](fn)(Flip(Cons[O])))([]O{})(xs)
+	return Reduce(MapT[I, O, []O](fn)(Snoc[O]))([]O{})(xs)
 }
 
 func Map[I, O any](fn func(I) O) func(xs []I) []O {
@@ -68,7 +72,7 @@ func Map[I, O any](fn func(I) O) func(xs []I) []O {
 }
 
 func _Filter[T any](fn func(T) bool, xs []T) []T {
-	return Reduce(FilterT[T, []T](fn)(Flip(Cons[T])))([]T{})(xs)
+	return Reduce(FilterT[T, []T](fn)(Snoc[T]))([]T{})(xs)
 }
 
 func Filter[T any](fn func(T) bool) func([]T) []T {
