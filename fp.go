@@ -17,10 +17,10 @@ func Const[T any](v T) func() T {
 	}
 }
 
-func _Apply1[I, O any](fn func(I) O, i I) O {
+func Apply1_[I, O any](fn func(I) O, i I) O {
 	return fn(i)
 }
 
 func Apply1[I, O any](fn func(I) O) func(I) O {
-	return Curry2(_Apply1[I, O])(fn)
+	return Curry2(Apply1_[I, O])(fn)
 }

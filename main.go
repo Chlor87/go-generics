@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-// call with Fix1
+// call with Fix1, this one is slow
 func _Fib(self FixFn1[int, int], n int) int {
 	if n <= 2 {
 		return 1
@@ -14,6 +14,7 @@ func _Fib(self FixFn1[int, int], n int) int {
 }
 
 // memoization, memo goes inside fix to capture memoized function
+// this one's fast
 var Fib = Fix1(
 	Memo2(
 		_Fib,
@@ -25,11 +26,23 @@ var Fib = Fix1(
 
 func main() {
 
-	fmt.Println(Fix1(_Fib)(45))
+	fmt.Println(All_(func(i int) bool {
+		return i == 1
+	}, []int{1, 1, 1, 1}))
+
+	// poor man's match expr
+	switch x, xs := Uncons([]string(nil)); {
+	case xs == nil:
+		fmt.Println("Nothing", x, xs)
+	default:
+		fmt.Println("Just", x, xs)
+	}
+
+	// memo, the second one is immediate
+	fmt.Println(_Fib(_Fib, 45))
 	fmt.Println(Fib(90))
 
 	c := make(chan string)
-
 	go func() {
 		for i := 0; i < 10; i++ {
 			c <- strconv.Itoa(i)

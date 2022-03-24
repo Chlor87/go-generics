@@ -7,9 +7,8 @@ func Memo1[I, O any, K comparable](fn func(I) O, keyFn func(I) K) func(I) O {
 		if res, ok := memo[k]; ok {
 			return res
 		}
-		res := fn(i)
-		memo[k] = res
-		return res
+		memo[k] = fn(i)
+		return memo[k]
 	}
 }
 
@@ -22,8 +21,7 @@ func Memo2[A, B, O any, K comparable](
 		if res, ok := memo[k]; ok {
 			return res
 		}
-		res := fn(a, b)
-		memo[k] = res
-		return res
+		memo[k] = fn(a, b)
+		return memo[k]
 	}
 }
