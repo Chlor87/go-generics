@@ -26,10 +26,6 @@ var Fib = Fix1(
 
 func main() {
 
-	fmt.Println(All_(func(i int) bool {
-		return i == 1
-	}, []int{1, 1, 1, 1}))
-
 	// poor man's match expr
 	switch x, xs := Uncons([]string(nil)); {
 	case xs == nil:
@@ -37,6 +33,10 @@ func main() {
 	default:
 		fmt.Println("Just", x, xs)
 	}
+
+	// lazy linked list
+	xs := AppendList(3, AppendList(2, MkList(1)))
+	fmt.Println(xs, reverseList(xs, nil), Stol([]int{1, 2, 3}))
 
 	// memo, the second one is immediate
 	fmt.Println(_Fib(_Fib, 45))

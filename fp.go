@@ -17,6 +17,14 @@ func Const[T any](v T) func() T {
 	}
 }
 
+func Cmp_[T comparable](a, b T) bool {
+	return a == b
+}
+
+func Cmp[T comparable](a T) func(T) bool {
+	return Curry2(Cmp_[T])(a)
+}
+
 func Apply1_[I, O any](fn func(I) O, i I) O {
 	return fn(i)
 }

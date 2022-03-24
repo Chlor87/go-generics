@@ -1,8 +1,8 @@
 package main
 
-// Cons_ is functional append
+// Cons_ is functional prepend
 func Cons_[T any](x T, xs []T) []T {
-	return append(xs, x)
+	return append([]T{x}, xs...)
 }
 
 func Cons[T any](x T) func(xs []T) []T {
@@ -10,7 +10,7 @@ func Cons[T any](x T) func(xs []T) []T {
 }
 
 func Snoc_[T any](xs []T, x T) []T {
-	return Cons_(x, xs)
+	return append(xs, x)
 }
 
 func Snoc[T any](xs []T) func(x T) []T {
@@ -119,15 +119,15 @@ func FindLast[T any](fn func(T) bool) func([]T) (T, bool) {
 	return Curry2_2(FindLast_[T])(fn)
 }
 
-func Contains_[T comparable](a T, xs []T) bool {
-	x, xs := Uncons(xs)
-	if x == a {
+func Contains_[T comparable](v T, xs []T) bool {
+	switch x, xs := Uncons(xs); {
+	case x == v:
 		return true
-	}
-	if xs == nil {
+	case xs == nil:
 		return false
+	default:
+		return Contains_(v, xs)
 	}
-	return Contains_(a, xs)
 }
 
 func Contains[T comparable](a T) func([]T) bool {
@@ -165,15 +165,15 @@ func All[T any](fn func(T) bool) func([]T) bool {
 }
 
 func GroupBy_[T any, K comparable](fn func(T) K, xs []T) map[K][]T {
-	return Reduce_(
-		func(p map[K][]T, c T) map[K][]T {
-			k := fn(c)
-			p[k] = append(p[k], c)
+	return Reduce(
+		MapT[T, TupleFn[K, T], map[K][]T](
+			func(i T) TupleFn[K, T] {
+				return Tuple(fn(i), i)
+			})(func(p map[K][]T, c TupleFn[K, T]) map[K][]T {
+			k, v := c()
+			p[k] = Snoc_(p[k], v)
 			return p
-		},
-		make(map[K][]T),
-		xs,
-	)
+		}))(map[K][]T{})(xs)
 }
 
 func GroupBy[T any, K comparable](fn func(T) K) func([]T) map[K][]T {
