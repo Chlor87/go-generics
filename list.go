@@ -5,98 +5,119 @@ import (
 	"strings"
 )
 
-// List is a type for lazy linked list
-type List[T any] func() (T, List[T])
+type List[T any] Tuple[T, List[T]]
 
-// String implements stringer interface
 func (l List[T]) String() string {
-	var tmp []string
-	WalkList(func(i T) {
-		tmp = append(tmp, fmt.Sprintf("%v", i))
-	}, l)
-	tmp = append(tmp, "nil")
-	return strings.Join(tmp, " => ")
+	var res []string
+	WalkL(func(t T) { res = append(res, fmt.Sprintf("%v", t)) }, l)
+	res = append(res, "nil")
+	return strings.Join(res, " => ")
 }
 
-func MkList[T any](head T) List[T] {
-	return func() (T, List[T]) {
-		return head, nil
-	}
+func MkL[T any](x T) List[T] {
+	return ConsL(x, nil)
 }
 
-func MapList[I, O any](fn func(I) O, xs List[I]) List[O] {
-	if xs == nil {
-		return nil
-	}
-	return func() (O, List[O]) {
-		x, xs := xs()
-		return fn(x), MapList(fn, xs)
-	}
-}
-
-func WalkList[T any](fn func(T), xs List[T]) {
+func WalkL[T any](fn func(T), xs List[T]) {
 	if xs == nil {
 		return
 	}
 	x, xs := xs()
 	fn(x)
-	WalkList(fn, xs)
+	WalkL(fn, xs)
 }
 
-func AppendList[T any](v T, xs List[T]) List[T] {
-	if xs == nil {
-		return MkList(v)
-	}
-	return func() (T, List[T]) {
-		x, xs := xs()
-		return x, AppendList(v, xs)
-	}
-}
-
-func PrependList[T any](v T, xs List[T]) List[T] {
+func ConsL[T any](v T, xs List[T]) List[T] {
 	return func() (T, List[T]) {
 		return v, xs
 	}
 }
 
-func insertList[T any](
-	fn func(T) bool, v T, inserter func(v T, x T, xs List[T],
-	) (T, List[T]), xs List[T],
+func SnocL[T any](xs List[T], v T) List[T] {
+	if xs == nil {
+		return MkL(v)
+	}
+	x, xs := xs()
+	return ConsL(x, SnocL(xs, v))
+}
+
+func UnconsL[T any](xs List[T]) (T, List[T]) {
+	return xs()
+}
+
+func MapL[I, O any](fn func(I) O, xs List[I]) List[O] {
+	if xs == nil {
+		return nil
+	}
+	x, xs := xs()
+	return ConsL(fn(x), MapL(fn, xs))
+}
+
+func insertL[T any](
+	fn func(T) bool,
+	v T,
+	inserter func(T, T, List[T]) List[T],
+	xs List[T],
 ) List[T] {
 	if xs == nil {
 		return xs
 	}
-	return func() (T, List[T]) {
-		x, xs := xs()
-		if fn(x) {
-			return inserter(v, x, xs)
-		}
-		return x, insertList(fn, v, inserter, xs)
+	x, xs := xs()
+	if fn(x) {
+		return inserter(v, x, xs)
 	}
+	return ConsL(x, insertL(fn, v, inserter, xs))
 }
 
-func InsertBeforeList[T any](
-	fn func(T) bool, v T, xs List[T],
-) List[T] {
-	return insertList(fn, v, func(v, x T, xs List[T]) (T, List[T]) {
-		return v, AppendList(x, xs)
+func InsertBeforeL[T any](fn func(T) bool, v T, xs List[T]) List[T] {
+	return insertL(fn, v, func(v, x T, xs List[T]) List[T] {
+		return ConsL(v, ConsL(x, xs))
 	}, xs)
 }
 
-func InsertAfterList[T any](
-	fn func(T) bool, v T, xs List[T],
-) List[T] {
-	return insertList(fn, v, func(v, x T, xs List[T]) (T, List[T]) {
-		return x, AppendList(v, xs)
+func InsertAfterL[T any](fn func(T) bool, v T, xs List[T]) List[T] {
+	return insertL(fn, v, func(v, x T, xs List[T]) List[T] {
+		return ConsL(x, ConsL(v, xs))
 	}, xs)
 }
 
-// Ltos - list to slice
-func Ltos[T any](xs List[T]) (res []T) {
-	WalkList(func(t T) {
-		res = append(res, t)
-	}, xs)
-	return
+func RemoveL[T any](fn func(T) bool, xs List[T]) List[T] {
+	if xs == nil {
+		return xs
+	}
+	x, xs := xs()
+	if fn(x) {
+		return xs
+	}
+	return ConsL(x, RemoveL(fn, xs))
+}
+
+func ReverseL[T any](xs List[T]) List[T] {
+	if xs == nil {
+		return xs
+	}
+	x, xs := xs()
+	return SnocL(ReverseL(xs), x)
+}
+
+func FindL[T any](fn func(T) bool, xs List[T]) (T, bool) {
+	if xs == nil {
+		var t T
+		return t, false
+	}
+	x, xs := xs()
+	if fn(x) {
+		return x, true
+	}
+	return FindL(fn, xs)
+}
+
+func Ltos[T any](xs List[T]) []T {
+	if xs == nil {
+		return nil
+	}
+	x, xs := xs()
+	return append([]T{x}, Ltos(xs)...)
 }
 
 func Stol[T any](xs []T) List[T] {
@@ -104,19 +125,29 @@ func Stol[T any](xs []T) List[T] {
 	if xs == nil {
 		return nil
 	}
-	return func() (T, List[T]) {
-		return x, Stol(xs)
-	}
+	return ConsL(x, Stol(xs))
 }
 
-func reverseList[T any](xs, ys List[T]) List[T] {
+func HeadL[T any](xs List[T]) T {
+	x, _ := xs()
+	return x
+}
+
+func TailL[T any](xs List[T]) List[T] {
 	if xs == nil {
-		return ys
+		return nil
 	}
-	x, xs := xs()
-	return reverseList(xs, PrependList(x, ys))
+	_, xs = xs()
+	return xs
 }
 
-func ReverseList[T any](xs List[T]) List[T] {
-	return reverseList(xs, nil)
+func ConcatL[T any](xss ...List[T]) List[T] {
+	if len(xss) == 0 || xss[0] == nil {
+		return nil
+	}
+	x, xs := xss[0]()
+	if xs == nil {
+		return ConsL(x, ConcatL(xss[1:]...))
+	}
+	return ConsL(x, ConcatL(append([]List[T]{xs}, xss[1:]...)...))
 }

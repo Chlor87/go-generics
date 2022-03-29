@@ -26,6 +26,15 @@ var Fib = Fix1(
 
 func main() {
 
+	// lazy tree
+	TreeTest()
+
+	// lazy linked list
+	fmt.Println(
+		ReverseL(ConsL(3, ConsL(2, MkL(1)))),
+		Stol(Ltos(ConsL(3, ConsL(2, MkL(1))))),
+	)
+
 	// poor man's match expr
 	switch x, xs := Uncons([]string(nil)); {
 	case xs == nil:
@@ -33,10 +42,6 @@ func main() {
 	default:
 		fmt.Println("Just", x, xs)
 	}
-
-	// lazy linked list
-	xs := AppendList(3, AppendList(2, MkList(1)))
-	fmt.Println(xs, reverseList(xs, nil), Stol([]int{1, 2, 3}))
 
 	// memo, the second one is immediate
 	fmt.Println(_Fib(_Fib, 45))

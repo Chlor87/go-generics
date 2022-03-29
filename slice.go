@@ -166,10 +166,10 @@ func All[T any](fn func(T) bool) func([]T) bool {
 
 func GroupBy_[T any, K comparable](fn func(T) K, xs []T) map[K][]T {
 	return Reduce(
-		MapT[T, TupleFn[K, T], map[K][]T](
-			func(i T) TupleFn[K, T] {
-				return Tuple(fn(i), i)
-			})(func(p map[K][]T, c TupleFn[K, T]) map[K][]T {
+		MapT[T, Tuple[K, T], map[K][]T](
+			func(i T) Tuple[K, T] {
+				return MkTuple(fn(i), i)
+			})(func(p map[K][]T, c Tuple[K, T]) map[K][]T {
 			k, v := c()
 			p[k] = Snoc_(p[k], v)
 			return p
