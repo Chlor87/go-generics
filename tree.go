@@ -14,15 +14,14 @@ func MkTree[T any](v T) Tree[T] {
 
 func (t Tree[T]) String() string {
 	var res []string
-	bfsDepth(func(x T, d int) {
+	WalkTree(func(x, p Tree[T], i, d int) {
 		res = append(res, fmt.Sprintf(
 			"%s%s( %v )",
 			strings.Repeat(".", d),
 			strings.Repeat(" ", int(math.Min(float64(d), 1))),
-			x,
-		),
-		)
-	}, t, 0)
+			Value(x),
+		))
+	}, t)
 	return strings.Join(res, "\n")
 }
 
@@ -31,9 +30,7 @@ func DFS[T any](fn func(T), t Tree[T]) {
 		return
 	}
 	x, xs := t()
-	WalkL(func(x Tree[T]) {
-		DFS(fn, x)
-	}, xs)
+	WalkL(func(x Tree[T]) { DFS(fn, x) }, xs)
 	fn(x)
 }
 
@@ -43,20 +40,7 @@ func BFS[T any](fn func(T), t Tree[T]) {
 	}
 	x, xs := t()
 	fn(x)
-	WalkL(func(x Tree[T]) {
-		BFS(fn, x)
-	}, xs)
-}
-
-func bfsDepth[T any](fn func(T, int), t Tree[T], depth int) {
-	if t == nil {
-		return
-	}
-	x, xs := t()
-	fn(x, depth)
-	WalkL(func(x Tree[T]) {
-		bfsDepth(fn, x, depth+1)
-	}, xs)
+	WalkL(func(x Tree[T]) { BFS(fn, x) }, xs)
 }
 
 func AddChild[T any](fn func(T) bool, v T, t Tree[T]) Tree[T] {
@@ -82,11 +66,18 @@ func RemoveChild[T any](fn func(T) bool, t Tree[T]) Tree[T] {
 }
 
 func Value[T any](t Tree[T]) T {
+	if t == nil {
+		var t T
+		return t
+	}
 	x, _ := t()
 	return x
 }
 
 func Children[T any](t Tree[T]) List[Tree[T]] {
+	if t == nil {
+		return nil
+	}
 	_, ts := t()
 	return ts
 }
@@ -112,22 +103,6 @@ func Parent[T any](fn func(T) bool, t, p Tree[T]) Tree[T] {
 	return nil
 }
 
-func WalkParent[T any](fn func(Tree[T], Tree[T]), t Tree[T]) {
-	if t == nil {
-		return
-	}
-	xs := Children(t)
-	for {
-		var x Tree[T]
-		x, xs = xs()
-		fn(x, t)
-		if xs == nil {
-			break
-		}
-		WalkParent(fn, x)
-	}
-}
-
 // IterTree returns a flat list (BFS)
 // TODO: figure out how to emit parent and depth
 func IterTree[T any](t Tree[T]) List[Tree[T]] {
@@ -150,10 +125,80 @@ func IterTree[T any](t Tree[T]) List[Tree[T]] {
 	return res
 }
 
+// walkCB documents walk callback's arguments
+type walkCB[T any] func(node, parent Tree[T], index, depth int)
+
+func walkTree[T any](fn walkCB[T], i, d int, p, t Tree[T]) {
+	fn(t, p, i, d)
+	WalkL(func(c Tree[T]) { walkTree(fn, i, d+1, t, c); i++ }, Children(t))
+}
+
+func WalkTree[T any](fn func(Tree[T], Tree[T], int, int), t Tree[T]) {
+	walkTree(fn, 0, 0, nil, t)
+}
+
+func pathTree[T any](fn func(Tree[T]) bool, path []int, t Tree[T]) []int {
+	if t == nil {
+		return nil
+	}
+
+	if fn(t) {
+		return path
+	}
+
+	xs := Children(t)
+	if xs == nil {
+		return nil
+	}
+
+	var i int
+	for {
+		var x Tree[T]
+		x, xs = xs()
+		if p := pathTree(fn, append(path, i), x); p != nil {
+			return p
+		}
+		if xs == nil {
+			break
+		}
+		i++
+	}
+	return nil
+}
+
+func PathTree[T any](fn func(Tree[T]) bool, t Tree[T]) []int {
+	return pathTree(fn, nil, t)
+}
+
+func ByPathTree[T any](path []int, t Tree[T]) (Tree[T], bool) {
+	if t == nil {
+		return nil, false
+	}
+
+	curr, ok := NthL(path[0], Children(t))
+	if !ok {
+		return nil, false
+	}
+
+	if len(path) == 1 {
+		return curr, true
+	}
+
+	return ByPathTree(path[1:], curr)
+}
+
 func TreeTest() {
 
 	t := AddChild(Cmp(2), 3, AddChild(Cmp(1), 2, MkTree(1)))
 	t = AddChild(Cmp(3), 5, AddChild(Cmp(1), 4, t))
+
+	WalkTree(func(t, p Tree[int], i, d int) {
+		fmt.Println(Value(t), Value(p), i, d)
+	}, t)
+
+	fmt.Println(ByPathTree(PathTree(func(t Tree[int]) bool { return Value(t) == 4 }, t), t))
+	fmt.Println(t)
+	return
 
 	next := IterTree(t)
 

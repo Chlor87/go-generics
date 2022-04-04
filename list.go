@@ -141,6 +141,18 @@ func TailL[T any](xs List[T]) List[T] {
 	return xs
 }
 
+func NthL[T any](idx int, xs List[T]) (T, bool) {
+	if xs == nil {
+		var t T
+		return t, false
+	}
+	x, xs := xs()
+	if idx == 0 {
+		return x, true
+	}
+	return NthL(idx-1, xs)
+}
+
 func ConcatL[T any](xss ...List[T]) List[T] {
 	if len(xss) == 0 || xss[0] == nil {
 		return nil
